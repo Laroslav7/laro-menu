@@ -1,163 +1,226 @@
--- Сервисы Roblox
-local CoreGui = game:GetService("CoreGui")
+-- by laroslav7
+if game:GetService("CoreGui"):FindFirstChild("YaroslavUI") then
+    game:GetService("CoreGui").YaroslavUI:Destroy()
+end
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local UserInput = game:GetService("UserInputService")
+local lp = Players.LocalPlayer
 
-local player = Players.LocalPlayer
-
--- Проверка на повторный запуск (удаляет старую гуишку, если она уже открыта)
-if CoreGui:FindFirstChild("LaroGui") then
-    CoreGui.LaroGui:Destroy()
-end
-
--- Переменные состояния
+-- Переменные
+local speedValue = 16
+local jumpValue = 50
 local noclipEnabled = false
-local noclipConnection = nil
+local speedEnabled = false
+local jumpEnabled = false
 
--- Создание основы GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "LaroGui"
--- Пробуем поместить в CoreGui, если нет прав — в PlayerGui
-screenGui.Parent = pcall(function() return CoreGui end) and CoreGui or player:WaitForChild("PlayerGui")
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "YaroslavUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
 
--- Главный фрейм (Окно)
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 220, 0, 210)
-mainFrame.Position = UDim2.new(0.5, -110, 0.4, -105)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true -- Можно перетаскивать мышкой
-mainFrame.Parent = screenGui
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 280, 0, 320)
+Frame.Position = UDim2.new(0.5, -140, 0.5, -160)
+Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Visible = false
+Frame.Parent = ScreenGui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 8)
-corner.Parent = mainFrame
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 10)
+Corner.Parent = Frame
 
--- Заголовок
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -30, 0, 30)
-title.Position = UDim2.new(0, 10, 0, 5)
-title.BackgroundTransparency = 1
-title.Text = "Laro Menu"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextSize = 16
-title.Font = Enum.Font.SourceSansBold
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = mainFrame
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+Title.BorderSizePixel = 0
+Title.Text = "Читы by laroslav7"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.Parent = Frame
 
--- Надпись By Laroslav7
-local credits = Instance.new("TextLabel")
-credits.Size = UDim2.new(1, -20, 0, 15)
-credits.Position = UDim2.new(0, 10, 0, 32)
-credits.BackgroundTransparency = 1
-credits.Text = "By Laroslav7"
-credits.TextColor3 = Color3.fromRGB(0, 170, 255)
-credits.TextSize = 13
-credits.Font = Enum.Font.SourceSansItalic
-credits.TextXAlignment = Enum.TextXAlignment.Left
-credits.Parent = mainFrame
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = Title
 
--- Кнопка сворачивания
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 20, 0, 20)
-toggleBtn.Position = UDim2.new(1, -25, 0, 5)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
-toggleBtn.Text = "-"
-toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleBtn.TextSize = 14
-toggleBtn.Parent = mainFrame
+-- Функция создания тоггла
+local function makeToggle(text, yPos, callback)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(1, -20, 0, 40)
+    Btn.Position = UDim2.new(0, 10, 0, yPos)
+    Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    Btn.BorderSizePixel = 0
+    Btn.Text = text .. ": ВЫКЛ"
+    Btn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    Btn.Font = Enum.Font.Gotham
+    Btn.TextSize = 14
+    Btn.Parent = Frame
 
-local btnCorner = Instance.new("UICorner")
-btnCorner.CornerRadius = UDim.new(0, 4)
-btnCorner.Parent = toggleBtn
+    local bc = Instance.new("UICorner")
+    bc.CornerRadius = UDim.new(0, 8)
+    bc.Parent = Btn
 
--- Контейнер для кнопок
-local content = Instance.new("Frame")
-content.Size = UDim2.new(1, -20, 0, 150)
-content.Position = UDim2.new(0, 10, 0, 52)
-content.BackgroundTransparency = 1
-content.Parent = mainFrame
-
--- Функция для быстрого создания красивых кнопок
-local function createButton(text, position, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 30)
-    btn.Position = position
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(240, 240, 240)
-    btn.TextSize = 14
-    btn.Font = Enum.Font.SourceSansSemibold
-    btn.Parent = content
-
-    local bCorner = Instance.new("UICorner")
-    bCorner.CornerRadius = UDim.new(0, 6)
-    bCorner.Parent = btn
-
-    btn.MouseButton1Click:Connect(function()
-        callback(btn)
+    local state = false
+    Btn.MouseButton1Click:Connect(function()
+        state = not state
+        if state then
+            Btn.Text = text .. ": ВКЛ"
+            Btn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            Btn.Text = text .. ": ВЫКЛ"
+            Btn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+        callback(state)
     end)
-    return btn
 end
 
--- 1. Кнопка Noclip
-local noclipBtn
-noclipBtn = createButton("Noclip: ВЫКЛ", UDim2.new(0, 0, 0, 0), function()
-    noclipEnabled = not noclipEnabled
-    
-    if noclipEnabled then
-        noclipBtn.Text = "Noclip: ВКЛ"
-        noclipBtn.BackgroundColor3 = Color3.fromRGB(46, 139, 87)
-        
-        -- Цикл отключения коллизий
-        noclipConnection = RunService.Stepped:Connect(function()
-            if player.Character then
-                for _, part in ipairs(player.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
+-- Функция создания слайдера
+local function makeSlider(text, yPos, min, max, default, callback)
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -20, 0, 20)
+    Label.Position = UDim2.new(0, 10, 0, yPos)
+    Label.BackgroundTransparency = 1
+    Label.Text = text .. ": " .. default
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.Font = Enum.Font.Gotham
+    Label.TextSize = 14
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Frame
+
+    local SliderBg = Instance.new("Frame")
+    SliderBg.Size = UDim2.new(1, -20, 0, 8)
+    SliderBg.Position = UDim2.new(0, 10, 0, yPos + 25)
+    SliderBg.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    SliderBg.BorderSizePixel = 0
+    SliderBg.Parent = Frame
+
+    local sbc = Instance.new("UICorner")
+    sbc.CornerRadius = UDim.new(0, 4)
+    sbc.Parent = SliderBg
+
+    local Fill = Instance.new("Frame")
+    Fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    Fill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    Fill.BorderSizePixel = 0
+    Fill.Parent = SliderBg
+
+    local fc = Instance.new("UICorner")
+    fc.CornerRadius = UDim.new(0, 4)
+    fc.Parent = Fill
+
+    local dragging = false
+    SliderBg.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+    UserInput.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    UserInput.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local rel = (input.Position.X - SliderBg.AbsolutePosition.X) / SliderBg.AbsoluteSize.X
+            rel = math.clamp(rel, 0, 1)
+            Fill.Size = UDim2.new(rel, 0, 1, 0)
+            local val = math.floor(min + (max - min) * rel)
+            Label.Text = text .. ": " .. val
+            callback(val)
+        end
+    end)
+end
+
+-- Слайдеры
+makeSlider("Скорость", 50, 16, 200, 16, function(v)
+    speedValue = v
+end)
+
+makeSlider("Прыжок", 115, 50, 500, 50, function(v)
+    jumpValue = v
+end)
+
+-- Тогглы
+makeToggle("Скорость", 180, function(state)
+    speedEnabled = state
+end)
+
+makeToggle("Прыжок", 230, function(state)
+    jumpEnabled = state
+end)
+
+makeToggle("Noclip", 280, function(state)
+    noclipEnabled = state
+end)
+
+-- Показ UI по Insert
+Frame.Visible = false
+UserInput.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.Insert then
+        Frame.Visible = not Frame.Visible
+    end
+end)
+
+-- Применение скорости/прыжка
+lp.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        if speedEnabled then hum.WalkSpeed = speedValue end
+        if jumpEnabled then hum.UseJumpPower = true hum.JumpPower = jumpValue end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.2) do
+        local char = lp.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                if speedEnabled then
+                    hum.WalkSpeed = speedValue
+                end
+                if jumpEnabled then
+                    hum.UseJumpPower = true
+                    hum.JumpPower = jumpValue
                 end
             end
-        end)
-    else
-        noclipBtn.Text = "Noclip: ВЫКЛ"
-        noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-        
-        if noclipConnection then
-            noclipConnection:Disconnect()
-            noclipConnection = nil
         end
     end
 end)
 
--- Установка скорости
-local function setSpeed(speed)
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.WalkSpeed = speed
+-- Noclip
+RunService.Stepped:Connect(function()
+    if noclipEnabled and lp.Character then
+        for _, part in pairs(lp.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
+            end
+        end
     end
-end
-
--- 2. Кнопки выбора скорости
-createButton("Скорость: Обычная (16)", UDim2.new(0, 0, 0, 38), function()
-    setSpeed(16)
 end)
 
-createButton("Скорость: Средняя (50)", UDim2.new(0, 0, 0, 76), function()
-    setSpeed(50)
-end)
+-- Уведомление
+local notify = Instance.new("TextLabel")
+notify.Size = UDim2.new(0, 300, 0, 40)
+notify.Position = UDim2.new(0.5, -150, 0, 20)
+notify.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+notify.Text = "Читы загружены! Нажми INSERT"
+notify.TextColor3 = Color3.fromRGB(255, 255, 255)
+notify.Font = Enum.Font.GothamBold
+notify.TextSize = 14
+notify.Parent = ScreenGui
 
-createButton("Скорость: Высокая (100)", UDim2.new(0, 0, 0, 114), function()
-    setSpeed(100)
-end)
+local nc = Instance.new("UICorner")
+nc.CornerRadius = UDim.new(0, 8)
+nc.Parent = notify
 
--- Логика сворачивания меню
-local minimized = false
-toggleBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    content.Visible = not minimized
-    mainFrame.Size = minimized and UDim2.new(0, 220, 0, 50) or UDim2.new(0, 220, 0, 210)
-    toggleBtn.Text = minimized and "+" or "-"
-end)
+task.wait(4)
+notify:Destroy()
